@@ -1,0 +1,59 @@
+{
+  "duration": 47.55,
+  "cues": [
+    {
+      "start": 0.3,
+      "end": 4.02,
+      "text": "Hi there! I'm Orion, and welcome to Orionis Tech.",
+      "gesture": "Wave"
+    },
+    {
+      "start": 4.47,
+      "end": 7.902,
+      "text": "We're Bangladesh's first AI-first technology company.",
+      "gesture": "ThumbsUp"
+    },
+    {
+      "start": 8.352,
+      "end": 12.816,
+      "text": "We build technology that connects, automates, and scales your business.",
+      "gesture": "Talk"
+    },
+    {
+      "start": 13.266,
+      "end": 19.146,
+      "text": "Custom software. Websites and mobile apps. And AI automations that keep working while you sleep.",
+      "gesture": "Yes"
+    },
+    {
+      "start": 19.596,
+      "end": 25.74,
+      "text": "We move you to the cloud, connect your data, and build custom solutions for problems nobody else has solved.",
+      "gesture": "Talk"
+    },
+    {
+      "start": 26.19,
+      "end": 32.286,
+      "text": "No templates. No generic fixes. Every solution is tailored to how your business really works.",
+      "gesture": "No"
+    },
+    {
+      "start": 32.736,
+      "end": 38.616,
+      "text": "We plan, we build, we scale, and we stay with you to maintain it, for the long term.",
+      "gesture": "Yes"
+    },
+    {
+      "start": 39.066,
+      "end": 44.682,
+      "text": "Tap the cards around me to explore our work, or tap a service on the ring to watch it come to life.",
+      "gesture": "Talk"
+    },
+    {
+      "start": 45.132,
+      "end": 47.1,
+      "text": "Let's build something great together!",
+      "gesture": "ThumbsUp"
+    }
+  ]
+}

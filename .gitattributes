@@ -1,0 +1,9 @@
+* text=auto eol=lf
+*.mind binary
+*.glb binary
+*.mp3 binary
+*.mp4 binary
+*.jpg binary
+*.png binary
+*.pdf binary
+*.woff2 binary

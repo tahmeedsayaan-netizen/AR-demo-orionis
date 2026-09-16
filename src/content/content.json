@@ -1,0 +1,162 @@
+{
+  "company": {
+    "name": "Orionis Tech Ltd.",
+    "tagline": "Technology That Connects, Automates & Scales",
+    "claim": "Bangladesh's first AI-First technology company",
+    "promise": "Behind every great business is great technology. Intelligent, reliable and enterprise-ready technology, engineered with premium craft and long-term care.",
+    "edge": [
+      { "title": "Tailored Solutions", "text": "Custom consulting and delivery — never templated." },
+      { "title": "AI-First Innovation", "text": "Intelligence built in from the ground up, maximising ROI." },
+      { "title": "Long-Term Partnership", "text": "We grow alongside you, well beyond delivery." },
+      { "title": "Enterprise-Grade Security", "text": "Compliance and data protection built in." }
+    ],
+    "email": "contact@orionistech.org",
+    "whatsapp": "+8801901855676",
+    "whatsappLabel": "+880 1901 855 676",
+    "office": "Kakrail, Dhaka, Bangladesh",
+    "website": "https://www.orionistech.org"
+  },
+
+  "video": {
+    "story": { "src": "media/orionis-story.mp4", "poster": "media/orionis-story.jpg" }
+  },
+
+  "process": [
+    { "id": "plan", "title": "Plan", "text": "We map your workflows, constraints and goals." },
+    { "id": "build", "title": "Build", "text": "Premium engineering with intelligence built in." },
+    { "id": "scale", "title": "Scale", "text": "Infrastructure that grows with your demand." },
+    { "id": "maintain", "title": "Maintain", "text": "Ongoing security, performance and partnership." }
+  ],
+
+  "services": [
+    {
+      "id": "software",
+      "label": "SOFTWARE\nDEVELOPMENT",
+      "title": "SOFTWARE DEVELOPMENT",
+      "color": "#a100ff",
+      "body": "Custom platforms engineered around the way your business actually works — built secure, fast and ready to grow.",
+      "bullets": ["Custom platforms", "Systems integration", "Performance engineering", "Security-focused builds"],
+      "video": "story"
+    },
+    {
+      "id": "webmobile",
+      "label": "WEBSITE &\nMOBILE APP",
+      "title": "WEBSITE & MOBILE APP",
+      "color": "#ff50a0",
+      "body": "Beautiful, responsive web and mobile experiences your customers love to use — on every screen.",
+      "bullets": ["iOS & Android", "Cross-platform apps", "Responsive web", "Design systems"],
+      "video": "story"
+    },
+    {
+      "id": "ai",
+      "label": "AI\nAUTOMATIONS",
+      "title": "AI AUTOMATIONS",
+      "color": "#ff7800",
+      "body": "AI agents and automated workflows that take repetitive work off your team — so they can focus on growth.",
+      "bullets": ["Workflow automation", "AI agents", "Document intelligence", "Predictive analytics"],
+      "video": "story"
+    },
+    {
+      "id": "cloud",
+      "label": "CLOUD &\nIT SOLUTIONS",
+      "title": "CLOUD & IT SOLUTIONS",
+      "color": "#7500c0",
+      "body": "Modern, resilient infrastructure — migrated, automated and managed so it simply keeps running.",
+      "bullets": ["Cloud migration", "DevOps", "Infrastructure-as-code", "Managed IT"],
+      "video": "story"
+    },
+    {
+      "id": "data",
+      "label": "DIGITAL GROWTH\n& DATA",
+      "title": "DIGITAL GROWTH & DATA PIPELINE",
+      "color": "#dcafff",
+      "body": "Turn scattered data into clear decisions — pipelines, dashboards and attribution that prove what works.",
+      "bullets": ["Data pipelines", "Marketing ROI tracking", "BI dashboards", "Attribution modelling"],
+      "video": "story"
+    },
+    {
+      "id": "custom",
+      "label": "CUSTOM\nSOLUTIONS",
+      "title": "CUSTOM SOLUTIONS",
+      "color": "#ff5757",
+      "body": "When nothing off-the-shelf fits, we design it — industry-specific tools, modernised legacy systems and R&D.",
+      "bullets": ["Industry-specific builds", "Workflow tooling", "Legacy modernisation", "R&D partnerships"],
+      "video": "story"
+    }
+  ],
+
+  "cases": [
+    {
+      "id": "story",
+      "number": "1",
+      "kicker": "WATCH OUR STORY",
+      "title": "WHY ORIONIS",
+      "color": "#a100ff",
+      "sample": false,
+      "art": "story",
+      "body": "Most businesses are handed the same generic website or software — like prescribing paracetamol for every illness. At Orionis we diagnose first. We learn where your real problem is, then build dedicated software, websites and automation around it. Not a vendor — a technology partner that grows with you.",
+      "video": "story"
+    },
+    {
+      "id": "invoice-ai",
+      "number": "2",
+      "kicker": "AI AUTOMATIONS",
+      "title": "AI INVOICE AGENT",
+      "color": "#ff7800",
+      "sample": true,
+      "art": "ai",
+      "body": "A freight forwarder was keying in 3,000+ invoices a month by hand. We built an AI document-intelligence agent that reads, validates and posts each invoice straight into their ERP, flagging only the exceptions for a human. Processing time dropped from four days to six hours, and data-entry errors fell by 80%.",
+      "video": "story"
+    },
+    {
+      "id": "telehealth",
+      "number": "3",
+      "kicker": "WEBSITE & MOBILE APP",
+      "title": "TELEHEALTH APP",
+      "color": "#ff50a0",
+      "sample": true,
+      "art": "mobile",
+      "body": "A network of clinics needed patients to book, pay and meet doctors online. We designed a cross-platform iOS and Android app with a matching web portal — live slot booking, secure video consults and digital prescriptions. Over 40,000 consultations were booked in the first six months.",
+      "video": "story"
+    },
+    {
+      "id": "cloud-retail",
+      "number": "4",
+      "kicker": "CLOUD & IT SOLUTIONS",
+      "title": "CLOUD MIGRATION",
+      "color": "#7500c0",
+      "sample": true,
+      "art": "cloud",
+      "body": "An online marketplace kept crashing on flash-sale days. We migrated it to auto-scaling cloud infrastructure defined as code, with CI/CD pipelines and 24/7 monitoring. The next mega-sale handled 12x normal traffic with zero downtime — and monthly hosting costs fell by 35%.",
+      "video": "story"
+    },
+    {
+      "id": "data-hub",
+      "number": "5",
+      "kicker": "DIGITAL GROWTH & DATA",
+      "title": "RETAIL DATA HUB",
+      "color": "#dcafff",
+      "sample": true,
+      "art": "data",
+      "body": "A fashion retailer had sales, ads and inventory data in six disconnected tools. We built a data pipeline and live BI dashboards with marketing attribution, so every campaign's true ROI is visible by morning. Ad spend was re-balanced within weeks, lifting return on ad spend by 2.3x.",
+      "video": "story"
+    }
+  ],
+
+  "presenter": {
+    "name": "Orion",
+    "voice": "en-US-AndrewNeural",
+    "rate": "+4%",
+    "script": [
+      { "text": "Hi there! I'm Orion, and welcome to Orionis Tech.", "gesture": "Wave" },
+      { "text": "We're Bangladesh's first AI-first technology company.", "gesture": "ThumbsUp" },
+      { "text": "We build technology that connects, automates, and scales your business.", "gesture": "Talk" },
+      { "text": "Custom software. Websites and mobile apps. And AI automations that keep working while you sleep.", "gesture": "Yes" },
+      { "text": "We move you to the cloud, connect your data, and build custom solutions for problems nobody else has solved.", "gesture": "Talk" },
+      { "text": "No templates. No generic fixes. Every solution is tailored to how your business really works.", "gesture": "No" },
+      { "text": "We plan, we build, we scale, and we stay with you to maintain it, for the long term.", "gesture": "Yes" },
+      { "text": "Tap the cards around me to explore our work, or tap a service on the ring to watch it come to life.", "gesture": "Talk" },
+      { "text": "Let's build something great together!", "gesture": "ThumbsUp" }
+    ]
+  }
+}

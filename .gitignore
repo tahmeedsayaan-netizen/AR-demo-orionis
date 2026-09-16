@@ -1,0 +1,11 @@
+node_modules/
+dist/
+shots/
+.voice-tmp/
+.vite-dev.log
+shots.log
+*.local
+
+# source footage (not used by the app; the compressed reel lives in public/media)
+/6b668614-*.mp4
+/WhatsApp Video*.mp4
