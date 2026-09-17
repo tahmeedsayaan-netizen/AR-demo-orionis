@@ -22,10 +22,8 @@ async function start(mode) {
   started = true;
 
   // Everything that needs the tap gesture happens first: audio unlock and (iOS) motion sensors for world tracking.
-  const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  const audioCtx = new AudioCtx();
   const voice = new Voice({ src: 'audio/voiceover.mp3', cuesUrl: 'audio/voiceover-cues.json' });
-  voice.unlock(audioCtx);
+  voice.unlock();
   // Opening straight into the camera means there may be no tap yet: sound (and iOS motion sensors, via the
   // engine's Continue prompt) switch on with the first tap anywhere.
   const onGesture = () => voice.gesture();

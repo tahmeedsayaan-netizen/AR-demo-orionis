@@ -5,9 +5,13 @@ import * as THREE from 'three';
 const ENGINE_URL = 'https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1.0.0/dist/xr.js';
 const TARGET_URL = 'image-targets/orionis-marker.json';
 
-const REFINE_MS = 1500; // after (re)detection, glide onto the freshest image pose for this long
-const DRIFT_POS = 0.05; // then only correct if off by > 5% of the marker width…
-const DRIFT_ANGLE = 0.1; // …or ~6°
+// Stability tuning. Raw image-target poses jitter from frame to frame (more when close or at an angle),
+// so they are averaged, the placement settles once and then stays locked to the room by SLAM.
+const POSE_SMOOTHING = 0.12; // share of each new detection mixed into the averaged pose
+const SETTLE_MS = 1200; // after the very first detection, glide onto the averaged pose for this long
+const DRIFT_POS = 0.12; // afterwards only re-align if the page is really off: > 12% of its width…
+const DRIFT_ANGLE = 0.17; // …or ~10°
+const DRIFT_HOLD_MS = 700; // …and only if that stays true for a while (not a single noisy reading)
 
 /**
  * Image target → world tracking. The page is detected once, the stage is placed on it and then
@@ -35,8 +39,10 @@ export class EighthWallSession {
     this.placed = false;
     this.seeing = false;
     this.correcting = false;
-    this.foundAt = 0;
-    this.target = { pos: new THREE.Vector3(), quat: new THREE.Quaternion(), scale: 1 };
+    this.placedAt = 0;
+    this.driftSince = 0;
+    this.hasTarget = false;
+    this.target = { pos: new THREE.Vector3(), quat: new THREE.Quaternion(), scale: 1 }; // averaged detection
     this.found = false;
   }
 
@@ -138,6 +144,7 @@ export class EighthWallSession {
     if (detail.name !== this.targetName) return;
     if (type === 'lost') {
       this.seeing = false;
+      this.driftSince = 0;
       if (!this._worldTracking) {
         this.found = false;
         this.onLost?.();
@@ -145,20 +152,30 @@ export class EighthWallSession {
       return;
     }
     const t = this.target;
-    t.pos.set(detail.position.x, detail.position.y, detail.position.z);
-    t.quat.set(detail.rotation.x, detail.rotation.y, detail.rotation.z, detail.rotation.w);
+    const pos = new THREE.Vector3(detail.position.x, detail.position.y, detail.position.z);
+    const quat = new THREE.Quaternion(detail.rotation.x, detail.rotation.y, detail.rotation.z, detail.rotation.w);
     const long = Math.max(detail.scaledWidth ?? 1, detail.scaledHeight ?? 1);
-    t.scale = detail.scale * long * this.pageOverCrop;
+    const scale = detail.scale * long * this.pageOverCrop;
+    if (!this.hasTarget || type === 'found') {
+      // fresh sighting: start the average from this reading
+      t.pos.copy(pos);
+      t.quat.copy(quat);
+      t.scale = scale;
+      this.hasTarget = true;
+    } else {
+      t.pos.lerp(pos, POSE_SMOOTHING);
+      t.quat.slerp(quat, POSE_SMOOTHING);
+      t.scale = THREE.MathUtils.lerp(t.scale, scale, POSE_SMOOTHING);
+    }
     this.seeing = true;
 
     if (type === 'found') {
-      this.foundAt = performance.now();
-      this.correcting = true;
       if (!this.placed) {
         this.anchor.position.copy(t.pos);
         this.anchor.quaternion.copy(t.quat);
         this.anchor.scale.setScalar(t.scale);
         this.placed = true;
+        this.placedAt = performance.now();
       }
       if (!this.found) {
         this.found = true;
@@ -172,27 +189,42 @@ export class EighthWallSession {
     if (!this.placed || !this.seeing) return;
     const a = this.anchor;
     const t = this.target;
-
-    if (!this._worldTracking) {
-      // image-only: follow closely with light smoothing
-      const k = 1 - Math.exp(-dt * 25);
+    const glide = (rate) => {
+      const k = 1 - Math.exp(-dt * rate);
       a.position.lerp(t.pos, k);
       a.quaternion.slerp(t.quat, k);
       a.scale.setScalar(THREE.MathUtils.lerp(a.scale.x, t.scale, k));
+    };
+
+    if (!this._worldTracking) {
+      glide(10); // image-only (desktop): follow the averaged pose smoothly
       return;
     }
 
+    const now = performance.now();
+    if (now - this.placedAt < SETTLE_MS) {
+      glide(4); // settle onto the averaged pose once
+      return;
+    }
+
+    // Locked. SLAM holds the stage in the room; only real, persistent drift triggers a slow re-align.
     const dist = a.position.distanceTo(t.pos);
     const angle = a.quaternion.angleTo(t.quat);
-    const refining = performance.now() - this.foundAt < REFINE_MS;
-    if (!this.correcting && (dist > DRIFT_POS * t.scale || angle > DRIFT_ANGLE)) this.correcting = true;
-    if (!this.correcting && !refining) return; // locked: SLAM keeps it in place
-
-    const k = 1 - Math.exp(-dt * 6);
-    a.position.lerp(t.pos, k);
-    a.quaternion.slerp(t.quat, k);
-    a.scale.setScalar(THREE.MathUtils.lerp(a.scale.x, t.scale, k));
-    if (!refining && dist < 0.004 * t.scale && angle < 0.01) this.correcting = false;
+    const drifted = dist > DRIFT_POS * a.scale.x || angle > DRIFT_ANGLE;
+    if (!this.correcting) {
+      if (!drifted) {
+        this.driftSince = 0;
+        return;
+      }
+      this.driftSince ||= now;
+      if (now - this.driftSince < DRIFT_HOLD_MS) return;
+      this.correcting = true;
+    }
+    glide(2.5);
+    if (dist < 0.01 * a.scale.x && angle < 0.015) {
+      this.correcting = false;
+      this.driftSince = 0;
+    }
   }
 
   /**

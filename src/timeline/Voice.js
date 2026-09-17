@@ -1,6 +1,10 @@
 /**
  * Presenter voiceover: plays the narration, fires caption/gesture cues and exposes a loudness level
- * (Web Audio analyser) used to animate the avatar's head and mouth.
+ * used to animate the avatar's head and mouth.
+ *
+ * The voice plays as a plain <audio> element (like the story video). Routing it through Web Audio made it
+ * silent on iPhones (muted by the silent switch, and suspended until a tap), so the loudness comes from an
+ * envelope precomputed into the cue file instead (tools/voice-envelope.mjs).
  */
 export class Voice {
   constructor({ src, cuesUrl }) {
@@ -12,7 +16,8 @@ export class Voice {
     this.index = -1;
     this.onCue = null;
     this.onEnd = null;
-    this.data = null;
+    this.envelope = null;
+    this.audio.setAttribute('playsinline', '');
     this.audio.addEventListener('ended', () => this.finish());
   }
 
@@ -21,22 +26,11 @@ export class Voice {
     const json = await res.json();
     this.cues = json.cues;
     this.duration = json.duration;
+    this.envelope = json.envelope ?? null;
   }
 
-  /** Must be called from a user gesture (unlocks audio on iOS/Android). */
-  unlock(ctx) {
-    this.ctx = ctx;
-    try {
-      const source = ctx.createMediaElementSource(this.audio);
-      this.analyser = ctx.createAnalyser();
-      this.analyser.fftSize = 512;
-      this.data = new Uint8Array(this.analyser.fftSize);
-      source.connect(this.analyser);
-      this.analyser.connect(ctx.destination);
-    } catch {
-      this.analyser = null;
-    }
-    // Prime playback silently: nothing may be heard until the page has been scanned.
+  /** Prepare playback (buffer the file) without making any sound before the page is scanned. */
+  unlock() {
     const a = this.audio;
     a.muted = true;
     const settle = () => {
@@ -56,7 +50,6 @@ export class Voice {
     this.active = true;
     this.audio.muted = false;
     this.audio.currentTime = 0;
-    this.ctx?.resume();
     this.startedAt = performance.now();
     this.audio.play().catch(() => {
       // audio blocked: run cues on a silent clock so the show still goes on
@@ -69,13 +62,32 @@ export class Voice {
    * silently, the voice joins in at the right moment.
    */
   gesture() {
-    this.ctx?.resume();
     const a = this.audio;
-    if (this.active && this.silent && !this.pausedAt) {
-      a.muted = false;
-      a.currentTime = Math.max(0, this.time);
-      a.play().then(() => { this.silent = false; }).catch(() => {});
+    if (this.active) {
+      if (this.pausedAt) return;
+      if (this.silent) {
+        a.muted = false;
+        a.currentTime = Math.max(0, this.time);
+        a.play().then(() => { this.silent = false; }).catch(() => {});
+      } else if (a.paused) {
+        a.play().catch(() => {});
+      }
+      return;
     }
+    if (this.gestureUnlocked) return;
+    this.gestureUnlocked = true;
+    // Not talking yet: play for an instant inside the tap so iPhones allow the narration later.
+    // The file starts with 0.3 s of silence, so nothing is heard.
+    a.muted = false;
+    a.currentTime = 0;
+    a.play()
+      .then(() => {
+        if (!this.active) {
+          a.pause();
+          a.currentTime = 0;
+        }
+      })
+      .catch(() => { this.gestureUnlocked = false; });
   }
 
   pause() {
@@ -112,14 +124,10 @@ export class Voice {
 
   level() {
     if (!this.active) return 0;
-    if (this.analyser) {
-      this.analyser.getByteTimeDomainData(this.data);
-      let sum = 0;
-      for (let i = 0; i < this.data.length; i++) {
-        const v = (this.data[i] - 128) / 128;
-        sum += v * v;
-      }
-      return Math.min(1, Math.sqrt(sum / this.data.length) * 5);
+    const env = this.envelope;
+    if (env?.values?.length) {
+      const i = Math.floor(this.time / env.step);
+      return env.values[Math.min(env.values.length - 1, Math.max(0, i))] ?? 0;
     }
     // fallback: fake speech rhythm while inside a cue
     const cue = this.cues[this.index];

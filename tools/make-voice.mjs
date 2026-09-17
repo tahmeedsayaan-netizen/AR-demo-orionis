@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { addEnvelope } from './voice-envelope.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const content = JSON.parse(readFileSync(join(root, 'src/content/content.json'), 'utf8'));
@@ -46,5 +47,6 @@ execFileSync('ffmpeg', ['-v', 'error', '-y', ...inputs, '-filter_complex', `${fi
   '-c:a', 'libmp3lame', '-b:a', '96k', join(root, 'public/audio/voiceover.mp3')], { stdio: 'inherit' });
 
 writeFileSync(join(root, 'public/audio/voiceover-cues.json'), JSON.stringify({ duration: +t.toFixed(3), cues }, null, 2));
+addEnvelope(root);
 rmSync(tmp, { recursive: true, force: true });
 console.log(`voiceover: ${t.toFixed(1)}s, ${cues.length} cues`);
