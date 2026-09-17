@@ -1,6 +1,5 @@
 import '@fontsource-variable/inter/wght.css';
 import './ui/hud.css';
-import * as THREE from 'three';
 import gsap from 'gsap';
 import content from './content/content.json';
 import { Hud } from './ui/hud.js';
@@ -21,27 +20,50 @@ async function start(mode) {
   if (started) return;
   started = true;
 
-  // Unlock audio inside the tap gesture.
+  // Everything that needs the tap gesture happens first: audio unlock and (iOS) motion sensors for world tracking.
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   const audioCtx = new AudioCtx();
   const voice = new Voice({ src: 'audio/voiceover.mp3', cuesUrl: 'audio/voiceover-cues.json' });
   voice.unlock(audioCtx);
+  if (mode === 'ar') await requestMotionPermission();
 
   hud.hideStart();
-  hud.loading('Loading experience…');
+  hud.loading(mode === 'ar' ? 'Starting AR engine…' : 'Loading experience…');
+
+  let director = null;
+  let pendingFound = false;
+  let session;
+  const onFound = () => {
+    hud.scanning(false);
+    if (director) director.found();
+    else pendingFound = true;
+  };
+  const onLost = () => director?.lost();
+  const onTrackingLimited = throttle(() => hud.toast(null, 'Move your phone slowly — point at the page again if things drift.', 3000), 8000);
 
   try {
-    await Promise.all([document.fonts.load('800 20px "Inter Variable"'), document.fonts.load('500 20px "Inter Variable"')]);
-  } catch {
-    /* fall back to system font */
+    if (mode === 'ar') {
+      const { EighthWallSession } = await import('./ar/eighthwall.js');
+      session = new EighthWallSession({ container, onFound, onLost, onTrackingLimited });
+    } else {
+      const { PreviewSession } = await import('./ar/preview.js');
+      session = new PreviewSession({ container, onFound });
+    }
+    await Promise.all([
+      session.start(),
+      document.fonts.load('800 20px "Inter Variable"').catch(() => {}),
+      document.fonts.load('500 20px "Inter Variable"').catch(() => {}),
+    ]);
+  } catch (err) {
+    console.error(err);
+    return fail(
+      err?.name === 'NotAllowedError'
+        ? 'Camera permission was denied. Allow camera access and reload — or try the preview.'
+        : 'AR could not start on this device. You can still explore the preview.',
+    );
   }
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: mode === 'ar', powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(container.clientWidth, container.clientHeight);
-  container.appendChild(renderer.domElement);
-
-  let director;
+  hud.loading('Loading experience…');
   const actions = {
     card: (i) => director.openCase(i),
     service: (i) => director.openService(i),
@@ -54,30 +76,7 @@ async function start(mode) {
     summon: () => director.summon(),
     presenter: () => director.presenterTap(),
   };
-  const stage = new Stage(renderer, content, hud, actions, { occluder: mode === 'ar' });
-  director = new Director({ stage, hud, voice, content });
-
-  let session;
-  let lostTimer;
-  const onFound = () => {
-    clearTimeout(lostTimer);
-    if (session.anchor) session.anchor.visible = true;
-    director.found();
-  };
-  const onLost = () => {
-    director.lost();
-    // like the reference: content disappears when the page leaves the view
-    lostTimer = setTimeout(() => session.anchor && (session.anchor.visible = false), 250);
-  };
-
-  if (mode === 'ar') {
-    const { ARSession } = await import('./ar/tracker.js');
-    session = new ARSession({ container, renderer, targetSrc: 'targets/orionis.mind', onFound, onLost });
-  } else {
-    const { PreviewSession } = await import('./ar/preview.js');
-    session = new PreviewSession({ container, renderer, onFound });
-  }
-
+  const stage = new Stage(session.renderer, content, hud, actions, { occluder: mode === 'ar' });
   try {
     await Promise.all([stage.load(), voice.load()]);
   } catch (err) {
@@ -85,22 +84,17 @@ async function start(mode) {
     return fail('Could not load the experience. Please check your connection and try again.');
   }
   session.mount.add(stage.group);
+  director = new Director({ stage, hud, voice, content });
 
-  if (mode === 'ar') hud.loading('Starting camera…');
-  try {
-    await session.start();
-  } catch (err) {
-    console.error(err);
-    return fail(
-      err?.name === 'NotAllowedError'
-        ? 'Camera permission was denied. Allow camera access and reload — or try the preview.'
-        : 'The camera could not start on this device. You can still explore the preview.',
-    );
-  }
+  session.onFrame = (dt) => {
+    voice.update();
+    if (!gsap.globalTimeline.paused()) stage.update(dt, session.camera);
+  };
 
   hud.loading(false);
   hud.showHud(mode);
-  if (mode === 'ar') hud.scanning(true);
+  if (mode === 'ar' && !session.found) hud.scanning(true);
+  if (pendingFound) director.found();
 
   hud
     .on('home', () => director.home())
@@ -115,20 +109,11 @@ async function start(mode) {
     });
 
   new Interaction({
-    dom: renderer.domElement,
+    dom: session.renderer.domElement,
     getCamera: () => session.camera,
     scene: session.scene,
     target: stage.root,
     manipulate: mode === 'ar',
-  });
-
-  const clock = new THREE.Clock();
-  renderer.setAnimationLoop(() => {
-    const dt = Math.min(clock.getDelta(), 0.05);
-    session.update?.();
-    voice.update();
-    if (!gsap.globalTimeline.paused()) stage.update(dt, session.camera);
-    renderer.render(session.scene, session.camera);
   });
 
   document.addEventListener('visibilitychange', () => {
@@ -142,6 +127,27 @@ async function start(mode) {
   });
 
   window.__orionis = { director, stage, session, voice, gsap };
+}
+
+/** iOS 13+ only grants motion sensors (needed for world tracking) from a user gesture. */
+async function requestMotionPermission() {
+  const ask = (E) => (typeof E?.requestPermission === 'function' ? E.requestPermission().catch(() => 'denied') : 'granted');
+  try {
+    await Promise.all([ask(window.DeviceMotionEvent), ask(window.DeviceOrientationEvent)]);
+  } catch {
+    /* the engine reports tracking problems itself */
+  }
+}
+
+function throttle(fn, ms) {
+  let last = 0;
+  return (...args) => {
+    const now = performance.now();
+    if (now - last > ms) {
+      last = now;
+      fn(...args);
+    }
+  };
 }
 
 function fail(message) {

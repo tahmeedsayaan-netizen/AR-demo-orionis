@@ -8,10 +8,14 @@ import { hexHoleShape } from '../util/geometry.js';
  * framed like someone holding a tablet over the page (as in the reference video).
  */
 export class PreviewSession {
-  constructor({ container, renderer, onFound }) {
+  constructor({ container, onFound }) {
     this.container = container;
-    this.renderer = renderer;
     this.onFound = onFound;
+    this.onFrame = null;
+
+    const renderer = (this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' }));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
 
     const scene = (this.scene = new THREE.Scene());
     scene.background = new THREE.Color('#141016');
@@ -77,11 +81,14 @@ export class PreviewSession {
   async start() {
     this.resize();
     window.addEventListener('resize', this.onResize);
+    const clock = new THREE.Clock();
+    this.renderer.setAnimationLoop(() => {
+      const dt = Math.min(clock.getDelta(), 0.05);
+      this.controls.update();
+      this.onFrame?.(dt);
+      this.renderer.render(this.scene, this.camera);
+    });
     setTimeout(() => this.onFound?.(), 500);
-  }
-
-  update() {
-    this.controls.update();
   }
 
   resize() {
@@ -101,6 +108,7 @@ export class PreviewSession {
 
   stop() {
     window.removeEventListener('resize', this.onResize);
+    this.renderer.setAnimationLoop(null);
     this.controls.dispose();
   }
 }

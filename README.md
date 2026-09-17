@@ -14,7 +14,8 @@ It recreates the reference AR brochure (`6b668614-….mp4`) beat for beat, using
 | Services | Tap a ring tab to bring up an **interactive hologram** plus a service panel (tap the hologram to interact) |
 | Video | PLAY VIDEO irises the hatch open and a 9:16 screen rises out playing the Orionis story reel (with a fullscreen option) |
 | Extras | Plan → Build → Scale → Maintain badges orbit the hatch; tap the closed lid to summon Orion; drag to rotate and pinch to scale (AR) |
-| HUD | Home (replay), Info (about + WhatsApp/email), captions toggle, Exit, and a scan hint when the marker is lost |
+| HUD | Home (replay), Info (about + WhatsApp/email), captions toggle, Exit, and a scan hint until the page is found |
+| Tracking | **Scan the page once, then move freely.** World tracking (SLAM) keeps everything fixed on the paper while you walk around it, look from any angle or get close. Whenever the page comes back into view the placement quietly re-aligns |
 
 ## Quick start
 
@@ -23,7 +24,7 @@ npm install
 npm run dev            # https://localhost:5173 and https://<your-LAN-IP>:5173
 ```
 
-- **Phone:** open `https://<LAN-IP>:5173` (accept the self-signed certificate), tap **Start AR**, and aim at the marker.
+- **Phone:** open `https://<LAN-IP>:5173` (accept the self-signed certificate), tap **Start AR**, and fit the whole page on screen until it's detected. Then move freely. On iPhone, allow **Motion & Orientation** access when asked; world tracking needs it.
 - **Laptop, no camera:** click **Preview without camera**, or open `/?preview&autostart`.
 - **Marker:** print `marker/orionis-marker.pdf` (A4 landscape), or show `marker/orionis-marker.png` on another screen.
 
@@ -48,14 +49,14 @@ Everything textual lives in [`src/content/content.json`](src/content/content.jso
 - **Changed the presenter script?** Regenerate the voice and caption timings: `npm run make:voice` (needs `pip install edge-tts`).
   To use a real recording instead, replace `public/audio/voiceover.mp3` and adjust `public/audio/voiceover-cues.json`.
 - **New story video?** Drop it in the project root as `WhatsApp Video*.mp4` and run `npm run prep:media`, or place any 9:16 mp4 at `public/media/orionis-story.mp4`.
-- **Changed the service labels or layout?** Re-run `npm run make:marker && npm run compile:target`, then reprint the marker.
+- **Changed the service labels or layout?** Re-run `npm run make:marker && npm run make:target`, then reprint the marker.
 
 ## Project layout
 
 ```
 src/
   main.js                 boot, mode select (AR / preview), render loop
-  ar/tracker.js           camera + MindAR image tracking → three.js anchor
+  ar/eighthwall.js        8th Wall engine: detect the page once, then world tracking (SLAM) keeps it placed
   ar/preview.js           desk + marker scene with orbit camera (no camera needed)
   timeline/Director.js    show flow: intro → talk → outro → idle ⇄ panel / service / video
   timeline/Voice.js       narration, caption cues, voice level for lip/head motion
@@ -63,13 +64,16 @@ src/
                           FloatingCards, Panel, VideoScreen, ProcessOrbit, holograms/*
   ui/                     HUD overlay (start, loading, buttons, captions, info sheet)
   util/brand.js           colours, logo, icons, and the layout shared by the marker and the AR
-tools/                    make-marker, compile-target, make-voice, prep-media, screenshots
-public/                   model, audio, media, tracking target
+tools/                    make-marker, make-target (8th Wall image target), make-voice, prep-media, screenshots
+public/                   model, audio, media, image target (image-targets/)
 marker/                   printable marker (PDF/PNG/SVG)
 ```
 
 ## Credits
 
 - Presenter model: *RobotExpressive* by Tomás Laulhé (Quaternius), CC0, via the three.js examples.
-- Tracking: [MindAR](https://github.com/hiukim/mind-ar-js) (MIT). Rendering: three.js. Animation: GSAP.
+- **AR engine: 8th Wall by Niantic Spatial, Inc.** © 2026 Niantic Spatial, Inc. All rights reserved. Loaded unmodified from its official CDN
+  build (`@8thwall/engine-binary`) and used under the [XR Engine License Agreement](https://github.com/8thwall/engine/blob/main/LICENSE).
+  Provided "as is" without warranties. The in-app Info sheet carries the same notice.
+- Rendering: three.js. Animation: GSAP.
 - Voice: Microsoft Edge neural TTS (`en-US-AndrewNeural`) via `edge-tts`.

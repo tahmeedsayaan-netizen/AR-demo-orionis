@@ -1,0 +1,23 @@
+{
+  "imagePath": "image-targets/orionis-marker_luminance.png",
+  "metadata": null,
+  "name": "orionis-marker",
+  "type": "PLANAR",
+  "properties": {
+    "left": 0,
+    "top": 101,
+    "width": 2480,
+    "height": 3307,
+    "isRotated": true,
+    "originalWidth": 2480,
+    "originalHeight": 3508
+  },
+  "resources": {
+    "originalImage": "orionis-marker_original.png",
+    "croppedImage": "orionis-marker_cropped.png",
+    "thumbnailImage": "orionis-marker_thumbnail.png",
+    "luminanceImage": "orionis-marker_luminance.png"
+  },
+  "created": 1789602909668,
+  "updated": 1789602909668
+}
