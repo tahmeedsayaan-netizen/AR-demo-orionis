@@ -31,10 +31,7 @@ export class VideoScreen {
 
     this.videoTex = new THREE.VideoTexture(video);
     this.videoTex.colorSpace = THREE.SRGBColorSpace;
-    this.screen = new THREE.Mesh(
-      new THREE.PlaneGeometry(SW, SH),
-      new THREE.MeshBasicMaterial({ map: this.videoTex, side: THREE.DoubleSide, toneMapped: false }),
-    );
+    this.screen = new THREE.Mesh(new THREE.PlaneGeometry(SW, SH), softVideoMaterial(this.videoTex));
     this.screen.position.y = SH / 2;
     this.screen.renderOrder = 22;
     this.screen.userData.onTap = () => this.tap();
@@ -99,4 +96,44 @@ export class VideoScreen {
       this.face.rotation.x = THREE.MathUtils.damp(this.face.rotation.x, lean, 4, dt);
     }
   }
+}
+
+/**
+ * Video with rounded corners whose edges fade smoothly into the camera view instead of ending in a hard line.
+ * Uses a rounded-rectangle distance field in plane units, so the corner radius stays round on the tall screen.
+ */
+function softVideoMaterial(map) {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      map: { value: map },
+      uSize: { value: new THREE.Vector2(SW, SH) },
+      uRadius: { value: SW * 0.12 },
+      uFeather: { value: SW * 0.09 },
+    },
+    vertexShader: /* glsl */ `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform sampler2D map;
+      uniform vec2 uSize;
+      uniform float uRadius;
+      uniform float uFeather;
+      varying vec2 vUv;
+      void main() {
+        vec2 p = (vUv - 0.5) * uSize;
+        vec2 q = abs(p) - (uSize * 0.5 - vec2(uRadius));
+        float dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - uRadius; // 0 at the rounded edge, < 0 inside
+        float alpha = smoothstep(0.0, uFeather, -dist);
+        alpha = alpha * alpha * (3.0 - 2.0 * alpha); // extra-soft falloff
+        vec4 c = texture2D(map, vUv);
+        gl_FragColor = vec4(c.rgb, alpha);
+        #include <colorspace_fragment>
+      }`,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
 }
