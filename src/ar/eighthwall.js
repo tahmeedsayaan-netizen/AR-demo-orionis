@@ -196,29 +196,17 @@ export class EighthWallSession {
   }
 
   /**
-   * Show the whole camera frame at 1x: fit (not fill) the canvas to the camera's aspect ratio,
-   * so nothing is cropped away. The unused screen area stays black.
+   * Fill the whole screen with the camera (no black bars). The engine centre-crops the feed to the
+   * canvas shape; with the 16:9 "Video 1x" feed that trims only a little from the sides on a phone.
    */
   sizeCanvas() {
-    const cw = this.container.clientWidth;
-    const ch = this.container.clientHeight;
+    const w = this.container.clientWidth;
+    const h = this.container.clientHeight;
     const v = this.video;
     this.videoW = v?.videoWidth;
     this.videoH = v?.videoHeight;
-    const aspect = v?.videoWidth && v?.videoHeight ? v.videoWidth / v.videoHeight : cw / ch;
-    let w = cw;
-    let h = cw / aspect;
-    if (h > ch) {
-      h = ch;
-      w = ch * aspect;
-    }
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    Object.assign(this.canvas.style, {
-      width: `${w}px`,
-      height: `${h}px`,
-      left: `${(cw - w) / 2}px`,
-      top: `${(ch - h) / 2}px`,
-    });
+    Object.assign(this.canvas.style, { width: `${w}px`, height: `${h}px`, left: '0px', top: '0px' });
     this.canvas.width = Math.round(w * dpr);
     this.canvas.height = Math.round(h * dpr);
   }
