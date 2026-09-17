@@ -49,7 +49,7 @@ export class Stage {
       onPlay: (item) => actions.play(item),
       onContact: () => actions.contact(),
     });
-    this.video = new VideoScreen(renderer, { onClose: () => actions.closeVideo(), onFullscreen: (t) => actions.fullscreen(t) });
+    this.video = new VideoScreen(renderer, { onClose: () => actions.closeVideo() });
     this.process = new ProcessOrbit(content.process, renderer, (i) => actions.process(i));
 
     const toast = (title, text) => hud.toast(title, text);

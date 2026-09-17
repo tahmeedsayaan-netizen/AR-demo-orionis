@@ -296,9 +296,9 @@ export class Director {
     const v = this.stage.video.video;
     v.muted = false;
     v.play().catch(() => {
+      // sound blocked by the browser: play muted, a tap on the video turns sound on
       v.muted = true;
       v.play().catch(() => {});
-      this.hud.toast(null, 'Tap the video to pause — use fullscreen ⤢ for sound.', 3500);
     });
   }
 
@@ -317,12 +317,6 @@ export class Director {
       },
     });
     tl.add(s.video.lowerTl(), 0).add(s.hatch.closeTl(), 0.75);
-  }
-
-  fullscreen(t) {
-    const { src, poster } = this.content.video.story;
-    this.stage.video.video.pause();
-    this.hud.fullscreenVideo(src, poster, t);
   }
 
   watch() {

@@ -70,7 +70,6 @@ async function start(mode) {
     back: () => director.back(),
     play: () => director.play(),
     closeVideo: () => director.closeVideo(),
-    fullscreen: (t) => director.fullscreen(t),
     contact: () => director.contact(),
     process: (i) => director.processTap(i),
     summon: () => director.summon(),
@@ -92,8 +91,9 @@ async function start(mode) {
   };
 
   hud.loading(false);
-  hud.showHud(mode);
-  if (mode === 'ar' && !session.found) hud.scanning(true);
+  // AR is pure camera: no buttons, captions, hints or toasts over the camera view
+  if (mode === 'ar') hud.setPure(true);
+  else hud.showHud(mode);
   if (pendingFound) director.found();
 
   hud

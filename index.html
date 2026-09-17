@@ -18,14 +18,18 @@
           <div class="brand-mark" data-logo></div>
           <h1>ORIONIS</h1>
           <p class="tagline">Technology That Connects, Automates &amp; Scales</p>
-          <p class="lead">Point your camera at the Orionis AR marker and watch our company come to life.</p>
+          <p class="lead">Tap Start, fit the whole Orionis page on screen, and watch our company come to life. Once it appears, move around freely.</p>
           <button id="btn-start-ar" class="btn primary">
             <span class="btn-icon" aria-hidden="true">◎</span> Start AR
           </button>
           <button id="btn-start-preview" class="btn ghost">Preview without camera</button>
           <a class="marker-link" href="targets/orionis-marker.png" target="_blank" rel="noopener">Don't have the marker? Open it on another screen ↗</a>
           <p class="hint">Sound on for the best experience 🔊</p>
-          <p class="credit">AR powered by 8th Wall</p>
+          <p class="credit">
+            AR powered by 8th Wall by Niantic Spatial, Inc. © 2026 Niantic Spatial, Inc. Used under the
+            <a href="https://github.com/8thwall/engine/blob/main/LICENSE" target="_blank" rel="noopener">XR Engine License Agreement</a>,
+            provided "as is" without warranties.
+          </p>
         </div>
       </section>
 
@@ -94,11 +98,6 @@
         </div>
       </section>
 
-      <!-- Fullscreen video -->
-      <section id="fs-video" class="sheet hidden">
-        <button class="sheet-close" data-close aria-label="Close">✕</button>
-        <video playsinline controls preload="none"></video>
-      </section>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>

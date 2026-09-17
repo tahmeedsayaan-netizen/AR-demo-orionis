@@ -2,11 +2,12 @@ import { COLORS, logoSVG } from '../util/brand.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
-/** DOM overlay: start/loading screens, HUD buttons, captions, toasts, info sheet, fullscreen video. */
+/** DOM overlay: start/loading screens, HUD buttons, captions, toasts and the info sheet (preview mode). */
 export class Hud {
   constructor(content) {
     this.content = content;
     this.captionsOn = true;
+    this.pure = false;
     this.handlers = {};
 
     document.querySelectorAll('[data-logo]').forEach((el) => {
@@ -57,17 +58,25 @@ export class Hud {
     $('#loading-text').textContent = text;
   }
 
+  /** Pure camera mode: nothing is drawn over the camera view. */
+  setPure(on) {
+    this.pure = on;
+    if (on) $('#hud').classList.add('hidden');
+  }
+
   showHud(mode) {
     $('#hud').classList.remove('hidden');
     document.body.dataset.mode = mode;
   }
 
   scanning(on) {
+    if (this.pure) return;
     $('#scan-hint').classList.toggle('hidden', !on);
   }
 
   // ---------- captions / hints ----------
   caption(text) {
+    if (this.pure) return;
     const el = $('#captions');
     if (!text || !this.captionsOn) {
       el.classList.add('hidden');
@@ -80,6 +89,7 @@ export class Hud {
   }
 
   phaseHint(html, action) {
+    if (this.pure) return;
     const el = $('#phase-hint');
     if (!html) return el.classList.add('hidden');
     el.innerHTML = html;
@@ -89,6 +99,7 @@ export class Hud {
   }
 
   toast(title, text, ms = 3200) {
+    if (this.pure) return;
     const el = $('#toast');
     el.innerHTML = `${title ? `<strong>${title}</strong>` : ''}${text}`;
     el.classList.remove('hidden');
@@ -120,19 +131,6 @@ export class Hud {
 
   closeSheet(sheet) {
     sheet.classList.add('hidden');
-    const video = $('video', sheet);
-    if (video) video.pause();
     this.emit('sheet', false);
-  }
-
-  fullscreenVideo(src, poster, startAt = 0) {
-    const sheet = $('#fs-video');
-    const video = $('video', sheet);
-    if (!video.src.endsWith(src)) video.src = src;
-    video.poster = poster;
-    sheet.classList.remove('hidden');
-    video.currentTime = startAt;
-    video.play().catch(() => {});
-    this.emit('sheet', true);
   }
 }
