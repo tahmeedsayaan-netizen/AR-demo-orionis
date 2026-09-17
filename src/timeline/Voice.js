@@ -36,14 +36,25 @@ export class Voice {
     } catch {
       this.analyser = null;
     }
-    const p = this.audio.play();
-    if (p) p.then(() => { this.audio.pause(); this.audio.currentTime = 0; }).catch(() => {});
+    // Prime playback silently: nothing may be heard until the page has been scanned.
+    const a = this.audio;
+    a.muted = true;
+    const settle = () => {
+      if (this.active) return; // narration already started for real
+      a.pause();
+      a.currentTime = 0;
+      a.muted = false;
+    };
+    const p = a.play();
+    if (p) p.then(settle, settle);
+    else settle();
   }
 
   play() {
     this.index = -1;
     this.clearedIndex = -1;
     this.active = true;
+    this.audio.muted = false;
     this.audio.currentTime = 0;
     this.ctx?.resume();
     this.startedAt = performance.now();
