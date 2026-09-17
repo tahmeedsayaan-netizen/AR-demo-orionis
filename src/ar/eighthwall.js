@@ -117,6 +117,7 @@ export class EighthWallSession {
           ],
         },
       ]);
+      requestVideoModeCamera();
       XR8.run({ canvas, allowedDevices: XR8.XrConfig.device().ANY });
     });
   }
@@ -231,6 +232,26 @@ export class EighthWallSession {
       /* already stopped */
     }
   }
+}
+
+/**
+ * Match the phone camera app's "Video 1x" view: ask for a 16:9 (1280×720) back-camera feed instead of
+ * the engine's default 4:3, keeping its lens choice. Falls back to the engine's own request if refused.
+ */
+function requestVideoModeCamera() {
+  const media = navigator.mediaDevices;
+  if (!media?.getUserMedia || media.getUserMedia.__orionis) return;
+  const original = media.getUserMedia.bind(media);
+  const patched = (constraints) => {
+    const video = constraints?.video;
+    const front = video && JSON.stringify(video.facingMode ?? '').includes('user');
+    if (!video || typeof video !== 'object' || front) return original(constraints);
+    const { width, height, aspectRatio, ...rest } = video;
+    const videoMode = { ...rest, width: { ideal: 1280 }, height: { ideal: 720 } };
+    return original({ ...constraints, video: videoMode }).catch(() => original(constraints));
+  };
+  patched.__orionis = true;
+  media.getUserMedia = patched;
 }
 
 /** Multi-lens phones can open on the ultra-wide or a zoomed lens; ask for plain 1x where supported. */
