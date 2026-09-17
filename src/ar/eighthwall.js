@@ -56,7 +56,7 @@ export class EighthWallSession {
 
     const canvas = (this.canvas = document.createElement('canvas'));
     canvas.id = 'camerafeed';
-    Object.assign(canvas.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', display: 'block' });
+    Object.assign(canvas.style, { position: 'absolute', display: 'block' });
     this.container.appendChild(canvas);
     this.sizeCanvas();
     this.onResize = () => this.sizeCanvas();
@@ -89,10 +89,18 @@ export class EighthWallSession {
           },
           onUpdate: () => {
             const dt = Math.min(clock.getDelta(), 0.05);
+            // the camera frame changes shape when the phone rotates
+            const v = this.video;
+            if (v && (v.videoWidth !== this.videoW || v.videoHeight !== this.videoH)) this.sizeCanvas();
             this.followTarget(dt);
             this.onFrame?.(dt);
           },
-          onCameraStatusChange: ({ status }) => {
+          onCameraStatusChange: ({ status, stream, video }) => {
+            if (status === 'hasStream' && stream) setOneTimesZoom(stream);
+            if (status === 'hasVideo' && video) {
+              this.video = video;
+              this.sizeCanvas();
+            }
             if (status === 'failed') reject(Object.assign(new Error('Camera failed to start'), { name: 'CameraFailed' }));
           },
           onException: (err) => reject(err instanceof Error ? err : new Error(String(err))),
@@ -186,10 +194,32 @@ export class EighthWallSession {
     if (!refining && dist < 0.004 * t.scale && angle < 0.01) this.correcting = false;
   }
 
+  /**
+   * Show the whole camera frame at 1x: fit (not fill) the canvas to the camera's aspect ratio,
+   * so nothing is cropped away. The unused screen area stays black.
+   */
   sizeCanvas() {
+    const cw = this.container.clientWidth;
+    const ch = this.container.clientHeight;
+    const v = this.video;
+    this.videoW = v?.videoWidth;
+    this.videoH = v?.videoHeight;
+    const aspect = v?.videoWidth && v?.videoHeight ? v.videoWidth / v.videoHeight : cw / ch;
+    let w = cw;
+    let h = cw / aspect;
+    if (h > ch) {
+      h = ch;
+      w = ch * aspect;
+    }
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    this.canvas.width = Math.round(this.container.clientWidth * dpr);
-    this.canvas.height = Math.round(this.container.clientHeight * dpr);
+    Object.assign(this.canvas.style, {
+      width: `${w}px`,
+      height: `${h}px`,
+      left: `${(cw - w) / 2}px`,
+      top: `${(ch - h) / 2}px`,
+    });
+    this.canvas.width = Math.round(w * dpr);
+    this.canvas.height = Math.round(h * dpr);
   }
 
   stop() {
@@ -200,6 +230,19 @@ export class EighthWallSession {
     } catch {
       /* already stopped */
     }
+  }
+}
+
+/** Multi-lens phones can open on the ultra-wide or a zoomed lens; ask for plain 1x where supported. */
+function setOneTimesZoom(stream) {
+  try {
+    const track = stream.getVideoTracks()[0];
+    const zoom = track?.getCapabilities?.().zoom;
+    if (!zoom || zoom.min > 1 || zoom.max < 1) return;
+    if (track.getSettings?.().zoom === 1) return;
+    track.applyConstraints({ advanced: [{ zoom: 1 }] }).catch(() => {});
+  } catch {
+    /* zoom control not available in this browser */
   }
 }
 

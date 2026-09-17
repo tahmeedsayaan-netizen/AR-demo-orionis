@@ -283,8 +283,8 @@ export class Director {
       s.process.hide();
       s.video.video.currentTime = 0;
       const tl = gsap.timeline({ onComplete: () => (this.busy = false) });
-      tl.add(s.hatch.openTl(), 0).add(s.video.raiseTl(), 0.45);
-      tl.call(() => this.startVideo(), null, 0.9);
+      tl.add(s.video.raiseTl(), 0);
+      tl.call(() => this.startVideo(), null, 0.35);
     };
 
     if (this.state === 'panel') this.closePanel(rise, { restore: false });
@@ -316,7 +316,7 @@ export class Director {
         cb?.();
       },
     });
-    tl.add(s.video.lowerTl(), 0).add(s.hatch.closeTl(), 0.75);
+    tl.add(s.video.lowerTl(), 0);
   }
 
   watch() {
