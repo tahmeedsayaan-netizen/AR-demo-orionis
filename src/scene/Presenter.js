@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { COLORS } from '../util/brand.js';
+import { makeCanvas, canvasTexture } from '../util/canvas.js';
 import { radialTexture } from '../util/geometry.js';
 
 const HEIGHT = 0.26;
@@ -28,6 +29,18 @@ export class Presenter {
     );
     shadow.position.y = 0.0008;
     this.group.add(shadow);
+
+    // pulsing speaker bubble shown when the phone needs one tap before sound can play
+    this.bubble = new THREE.Sprite(new THREE.SpriteMaterial({ map: canvasTexture(speakerCanvas()), transparent: true, depthWrite: false, depthTest: false }));
+    this.bubble.position.y = HEIGHT + 0.075;
+    this.bubble.scale.setScalar(0.075);
+    this.bubble.renderOrder = 30;
+    this.bubble.visible = false;
+    this.group.add(this.bubble);
+  }
+
+  showTapBubble(on) {
+    this.bubble.visible = on;
   }
 
   async load(url) {
@@ -106,6 +119,10 @@ export class Presenter {
 
   update(dt, t, cameraLocal) {
     this.mixer?.update(dt);
+    if (this.bubble.visible) {
+      this.bubble.scale.setScalar(0.075 * (1 + Math.sin(t * 5) * 0.08));
+      this.bubble.position.y = HEIGHT + 0.075 + Math.sin(t * 2) * 0.006;
+    }
 
     // turn to face the viewer (yaw only, smoothed)
     const target = this.lookTarget ?? cameraLocal;
@@ -128,4 +145,40 @@ export class Presenter {
       this.face.morphTargetInfluences[idx] = THREE.MathUtils.damp(cur, Math.min(1, lvl * 1.6), 18, dt);
     }
   }
+}
+
+/** Round purple speech bubble with a speaker and sound waves. */
+function speakerCanvas() {
+  const [c, g] = makeCanvas(256, 256);
+  g.shadowColor = COLORS.purple;
+  g.shadowBlur = 30;
+  g.fillStyle = COLORS.purple;
+  g.beginPath();
+  g.arc(128, 118, 88, 0, Math.PI * 2);
+  g.fill();
+  g.beginPath(); // bubble tail
+  g.moveTo(108, 196);
+  g.lineTo(128, 236);
+  g.lineTo(148, 196);
+  g.fill();
+  g.shadowBlur = 0;
+  g.fillStyle = '#fff'; // speaker
+  g.beginPath();
+  g.moveTo(74, 100);
+  g.lineTo(100, 100);
+  g.lineTo(130, 72);
+  g.lineTo(130, 164);
+  g.lineTo(100, 136);
+  g.lineTo(74, 136);
+  g.closePath();
+  g.fill();
+  g.strokeStyle = '#fff'; // sound waves
+  g.lineWidth = 10;
+  g.lineCap = 'round';
+  for (const r of [26, 50]) {
+    g.beginPath();
+    g.arc(136, 118, r, -0.8, 0.8);
+    g.stroke();
+  }
+  return c;
 }

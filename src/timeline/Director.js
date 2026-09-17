@@ -27,6 +27,7 @@ export class Director {
       if (cue) stage.presenter.gesture(cue.gesture);
     };
     voice.onEnd = () => this.outro();
+    voice.onBlocked = () => this.awaitTap();
     stage.presenter.level = () => voice.level();
   }
 
@@ -74,6 +75,8 @@ export class Director {
     s.root.rotation.set(0, 0, 0);
     s.root.scale.setScalar(1);
     s.presenter.talking = false;
+    s.presenter.showTapBubble(false);
+    this.waveLoop?.kill();
     s.presenter.play('Idle', 0);
     this.current = null;
     this.busy = false;
@@ -101,6 +104,31 @@ export class Director {
     this.voice.play();
   }
 
+  /**
+   * The phone refused sound because nobody has tapped yet (browsers require one tap).
+   * Orion waits and waves with a pulsing speaker bubble; the first tap anywhere starts the talk with sound.
+   */
+  awaitTap() {
+    if (this.state !== 'talk') return;
+    const p = this.stage.presenter;
+    this.voice.stop();
+    this.hud.caption(null);
+    this.state = 'awaitTap';
+    p.talking = false;
+    p.showTapBubble(true);
+    p.play('Wave', 0.25);
+    this.waveLoop?.kill();
+    this.waveLoop = gsap.to({}, { duration: 3.5, repeat: -1, onRepeat: () => p.play('Wave', 0.25) });
+  }
+
+  /** Called for every tap on the page (inside the tap, so audio may start). */
+  userTap() {
+    if (this.state !== 'awaitTap') return;
+    this.waveLoop?.kill();
+    this.stage.presenter.showTapBubble(false);
+    this.startTalk();
+  }
+
   outro(fast = false, then) {
     if (this.state === 'outro') {
       if (then) this.pending = then;
@@ -110,6 +138,8 @@ export class Director {
     this.busy = true;
     this.pending = then;
     this.introTl?.kill();
+    this.waveLoop?.kill();
+    this.stage.presenter.showTapBubble(false);
     this.voice.stop();
     const s = this.stage;
     s.presenter.talking = false;
@@ -159,7 +189,7 @@ export class Director {
   }
 
   skip() {
-    if (this.state === 'intro' || this.state === 'talk') this.outro(true);
+    if (this.state === 'intro' || this.state === 'talk' || this.state === 'awaitTap') this.outro(true);
   }
 
   /** Get to idle (closing whatever is open), then run cb. */
@@ -170,6 +200,7 @@ export class Director {
         return cb();
       case 'intro':
       case 'talk':
+      case 'awaitTap':
         return this.outro(true, cb);
       case 'outro':
         this.pending = cb;

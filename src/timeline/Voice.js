@@ -17,7 +17,14 @@ export class Voice {
     this.onCue = null;
     this.onEnd = null;
     this.envelope = null;
+    this.onBlocked = null;
     this.audio.setAttribute('playsinline', '');
+    // iPhone: treat the voice as media playback so the silent switch doesn't mute it
+    try {
+      if (navigator.audioSession) navigator.audioSession.type = 'playback';
+    } catch {
+      /* not supported */
+    }
     this.audio.addEventListener('ended', () => this.finish());
   }
 
@@ -52,8 +59,9 @@ export class Voice {
     this.audio.currentTime = 0;
     this.startedAt = performance.now();
     this.audio.play().catch(() => {
-      // audio blocked: run cues on a silent clock so the show still goes on
+      // sound blocked (no tap yet): run cues on a silent clock, and let the director ask for a tap
       this.silent = true;
+      this.onBlocked?.();
     });
   }
 

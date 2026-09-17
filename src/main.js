@@ -26,7 +26,11 @@ async function start(mode) {
   voice.unlock();
   // Opening straight into the camera means there may be no tap yet: sound (and iOS motion sensors, via the
   // engine's Continue prompt) switch on with the first tap anywhere.
-  const onGesture = () => voice.gesture();
+  let director = null;
+  const onGesture = () => {
+    director?.userTap(); // if Orion is waiting for a tap, start talking inside this tap
+    voice.gesture();
+  };
   ['touchend', 'click'].forEach((type) => document.addEventListener(type, onGesture, { capture: true, passive: true }));
   if (mode === 'ar') {
     brandEnginePrompt();
@@ -36,7 +40,6 @@ async function start(mode) {
   hud.hideStart();
   hud.loading(mode === 'ar' ? 'Starting AR engine…' : 'Loading experience…');
 
-  let director = null;
   let pendingFound = false;
   let session;
   const onFound = () => {
