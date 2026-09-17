@@ -57,7 +57,9 @@ export class EighthWallSession {
     this.configureTarget(targetData);
 
     const os = XR8.XrDevice?.deviceEstimate?.().os ?? '';
-    this._worldTracking = /ios|android/i.test(os) || /Android|iPhone|iPad/i.test(navigator.userAgent);
+    const ua = navigator.userAgent;
+    const iPadOS = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+    this._worldTracking = /ios|android/i.test(os) || /Android|iPhone|iPad/i.test(ua) || iPadOS;
     if (this._worldTracking && XR8.loadChunk) await XR8.loadChunk('slam');
 
     const canvas = (this.canvas = document.createElement('canvas'));
@@ -95,6 +97,7 @@ export class EighthWallSession {
           },
           onUpdate: () => {
             const dt = Math.min(clock.getDelta(), 0.05);
+            this.fps = this.fps ? this.fps * 0.95 + (1 / Math.max(dt, 0.001)) * 0.05 : 30;
             // the camera frame changes shape when the phone rotates
             const v = this.video;
             if (v && (v.videoWidth !== this.videoW || v.videoHeight !== this.videoH)) this.sizeCanvas();
@@ -102,7 +105,7 @@ export class EighthWallSession {
             this.onFrame?.(dt);
           },
           onCameraStatusChange: ({ status, stream, video }) => {
-            if (status === 'hasStream' && stream) setOneTimesZoom(stream);
+            if (status === 'hasStream' && stream) this.stream = stream;
             if (status === 'hasVideo' && video) {
               this.video = video;
               this.sizeCanvas();
@@ -117,13 +120,14 @@ export class EighthWallSession {
             {
               event: 'reality.trackingstatus',
               process: ({ detail }) => {
+                this.trackingStatus = `${detail.status}${detail.reason ? ` (${detail.reason})` : ''}`;
                 if (this.placed && detail.status === 'LIMITED' && detail.reason !== 'INITIALIZING') this.onTrackingLimited?.();
               },
             },
           ],
         },
       ]);
-      requestVideoModeCamera();
+      preferMainLens();
       XR8.run({ canvas, allowedDevices: XR8.XrConfig.device().ANY });
     });
   }
@@ -229,7 +233,7 @@ export class EighthWallSession {
 
   /**
    * Fill the whole screen with the camera (no black bars). The engine centre-crops the feed to the
-   * canvas shape; with the 16:9 "Video 1x" feed that trims only a little from the sides on a phone.
+   * canvas shape and keeps the 3D camera matched to that crop.
    */
   sizeCanvas() {
     const w = this.container.clientWidth;
@@ -255,10 +259,12 @@ export class EighthWallSession {
 }
 
 /**
- * Match the phone camera app's "Video 1x" view: ask for a 16:9 (1280×720) back-camera feed instead of
- * the engine's default 4:3, keeping its lens choice. Falls back to the engine's own request if refused.
+ * World tracking needs the camera exactly as the engine requests it (its calibration assumes that resolution
+ * and field of view), so the request is left untouched. The only change: on iPhone, always open the
+ * "Back Camera" (the 1x lens). On a first visit the lens names are hidden until camera permission is given,
+ * which could otherwise land on a different lens than on later visits.
  */
-function requestVideoModeCamera() {
+function preferMainLens() {
   const media = navigator.mediaDevices;
   if (!media?.getUserMedia || media.getUserMedia.__orionis) return;
   const original = media.getUserMedia.bind(media);
@@ -266,10 +272,8 @@ function requestVideoModeCamera() {
     const video = constraints?.video;
     const front = video && JSON.stringify(video.facingMode ?? '').includes('user');
     if (!video || typeof video !== 'object' || front) return original(constraints);
-    const { width, height, aspectRatio, ...rest } = video;
-    let videoMode = { ...rest, width: { ideal: 1280 }, height: { ideal: 720 } };
-    videoMode = await preferMainBackCamera(media, original, videoMode);
-    return original({ ...constraints, video: videoMode }).catch(() => original(constraints));
+    const withLens = await preferMainBackCamera(media, original, video);
+    return original({ ...constraints, video: withLens }).catch(() => original(constraints));
   };
   patched.__orionis = true;
   media.getUserMedia = patched;
@@ -297,19 +301,6 @@ async function preferMainBackCamera(media, original, video) {
   if (!main) return video;
   const { facingMode, ...rest } = video;
   return { ...rest, deviceId: { exact: main.deviceId } };
-}
-
-/** Multi-lens phones can open on the ultra-wide or a zoomed lens; ask for plain 1x where supported. */
-function setOneTimesZoom(stream) {
-  try {
-    const track = stream.getVideoTracks()[0];
-    const zoom = track?.getCapabilities?.().zoom;
-    if (!zoom || zoom.min > 1 || zoom.max < 1) return;
-    if (track.getSettings?.().zoom === 1) return;
-    track.applyConstraints({ advanced: [{ zoom: 1 }] }).catch(() => {});
-  } catch {
-    /* zoom control not available in this browser */
-  }
 }
 
 function loadEngine() {

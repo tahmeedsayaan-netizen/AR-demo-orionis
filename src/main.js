@@ -122,7 +122,7 @@ async function start(mode) {
     getCamera: () => session.camera,
     scene: session.scene,
     target: stage.root,
-    manipulate: mode === 'ar',
+    manipulate: false, // AR content must stay put on the page; the preview has its own orbit controls
   });
 
   document.addEventListener('visibilitychange', () => {
@@ -136,6 +136,7 @@ async function start(mode) {
   });
 
   window.__orionis = { director, stage, session, voice, gsap };
+  if (params.has('debug') && mode === 'ar') showDebug(session);
 }
 
 /** iOS 13+ only grants motion sensors (needed for world tracking) from a user gesture. */
@@ -146,6 +147,28 @@ async function requestMotionPermission() {
   } catch {
     /* the engine reports tracking problems itself */
   }
+}
+
+/** `?debug`: tiny tracking readout, for checking world tracking on a real phone. */
+function showDebug(session) {
+  const el = document.createElement('pre');
+  Object.assign(el.style, {
+    position: 'fixed', left: '8px', bottom: '8px', zIndex: 50, margin: 0, padding: '6px 8px', borderRadius: '8px',
+    font: '11px/1.35 monospace', color: '#0f0', background: 'rgba(0,0,0,0.65)', pointerEvents: 'none',
+  });
+  document.body.appendChild(el);
+  setInterval(() => {
+    const v = session.video;
+    const a = session.anchor;
+    el.textContent = [
+      `world tracking: ${session.worldTracking ? 'ON' : 'OFF (image only)'}`,
+      `tracking: ${session.trackingStatus ?? '-'}`,
+      `page: ${session.placed ? 'placed' : 'not found'}${session.seeing ? ', in view' : ''}${session.correcting ? ', re-aligning' : ''}`,
+      `camera: ${v ? `${v.videoWidth}x${v.videoHeight}` : '-'}  fps: ${Math.round(session.fps || 0)}`,
+      `page width (world units): ${a.scale.x.toFixed(3)}`,
+      `ua: ${navigator.userAgent.slice(0, 60)}`,
+    ].join('\n');
+  }, 400);
 }
 
 /** Restyle the engine's own motion-permission box (iPhone) to match Orionis. */
