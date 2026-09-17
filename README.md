@@ -25,7 +25,7 @@ npm run dev            # https://localhost:5173 and https://<your-LAN-IP>:5173
 ```
 
 - **Phone:** open `https://<LAN-IP>:5173` (accept the self-signed certificate), tap **Start AR**, and fit the whole page on screen until it's detected. Then move freely. On iPhone, allow **Motion & Orientation** access when asked; world tracking needs it.
-- **Laptop, no camera:** click **Preview without camera**, or open `/?preview&autostart`.
+- **The link opens straight into the camera.** Laptop without a camera: open `/?preview`. Start screen with both options: `/?menu`.
 - **Marker:** print `marker/orionis-marker.pdf` (A4 landscape), or show `marker/orionis-marker.png` on another screen.
 
 ## Build and deploy

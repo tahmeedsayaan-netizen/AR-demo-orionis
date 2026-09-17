@@ -13,8 +13,9 @@ const params = new URLSearchParams(location.search);
 const hud = new Hud(content);
 let started = false;
 
-hud.showStart({ onAR: () => start('ar'), onPreview: () => start('preview') });
-if (params.has('autostart')) start(params.has('preview') ? 'preview' : 'ar');
+// The link opens straight into the camera. `?preview` opens the no-camera preview, `?menu` shows the start screen.
+if (params.has('menu')) hud.showStart({ onAR: () => start('ar'), onPreview: () => start('preview') });
+else start(params.has('preview') ? 'preview' : 'ar');
 
 async function start(mode) {
   if (started) return;
@@ -25,7 +26,14 @@ async function start(mode) {
   const audioCtx = new AudioCtx();
   const voice = new Voice({ src: 'audio/voiceover.mp3', cuesUrl: 'audio/voiceover-cues.json' });
   voice.unlock(audioCtx);
-  if (mode === 'ar') await requestMotionPermission();
+  // Opening straight into the camera means there may be no tap yet: sound (and iOS motion sensors, via the
+  // engine's Continue prompt) switch on with the first tap anywhere.
+  const onGesture = () => voice.gesture();
+  ['touchend', 'click'].forEach((type) => document.addEventListener(type, onGesture, { capture: true, passive: true }));
+  if (mode === 'ar') {
+    brandEnginePrompt();
+    await requestMotionPermission();
+  }
 
   hud.hideStart();
   hud.loading(mode === 'ar' ? 'Starting AR engine…' : 'Loading experience…');
@@ -139,6 +147,18 @@ async function requestMotionPermission() {
   }
 }
 
+/** Restyle the engine's own motion-permission box (iPhone) to match Orionis. */
+function brandEnginePrompt() {
+  const observer = new MutationObserver(() => {
+    const box = document.querySelector('.prompt-box-8w');
+    if (!box || box.dataset.orionis) return;
+    box.dataset.orionis = '1';
+    const text = box.querySelector('p');
+    if (text) text.textContent = 'Tap Continue to start the Orionis AR experience';
+  });
+  observer.observe(document.body, { childList: true });
+}
+
 function throttle(fn, ms) {
   let last = 0;
   return (...args) => {
@@ -155,7 +175,7 @@ function fail(message) {
   document.querySelector('#start-screen .lead').textContent = message;
   document.getElementById('btn-start-ar').onclick = () => location.reload();
   document.getElementById('btn-start-preview').onclick = () => {
-    location.search = '?preview&autostart';
+    location.search = '?preview';
   };
   document.getElementById('start-screen').classList.remove('hidden');
 }

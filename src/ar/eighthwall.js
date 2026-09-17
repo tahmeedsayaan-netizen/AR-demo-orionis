@@ -230,16 +230,41 @@ function requestVideoModeCamera() {
   const media = navigator.mediaDevices;
   if (!media?.getUserMedia || media.getUserMedia.__orionis) return;
   const original = media.getUserMedia.bind(media);
-  const patched = (constraints) => {
+  const patched = async (constraints) => {
     const video = constraints?.video;
     const front = video && JSON.stringify(video.facingMode ?? '').includes('user');
     if (!video || typeof video !== 'object' || front) return original(constraints);
     const { width, height, aspectRatio, ...rest } = video;
-    const videoMode = { ...rest, width: { ideal: 1280 }, height: { ideal: 720 } };
+    let videoMode = { ...rest, width: { ideal: 1280 }, height: { ideal: 720 } };
+    videoMode = await preferMainBackCamera(media, original, videoMode);
     return original({ ...constraints, video: videoMode }).catch(() => original(constraints));
   };
   patched.__orionis = true;
   media.getUserMedia = patched;
+}
+
+/**
+ * iPhones expose several rear lenses. On a first visit (before camera permission) the browser hides their
+ * names, so the engine can end up on a zoomed lens; on later visits it finds "Back Camera" (the 1x lens).
+ * Make every visit behave like the later ones: unlock the names once, then pick "Back Camera" explicitly.
+ */
+async function preferMainBackCamera(media, original, video) {
+  if (video.deviceId || !/iPhone|iPad|iPod/.test(navigator.userAgent)) return video;
+  const cameras = async () => (await media.enumerateDevices().catch(() => [])).filter((d) => d.kind === 'videoinput');
+  let list = await cameras();
+  if (list.length && !list.some((d) => d.label)) {
+    try {
+      const probe = await original({ video: { facingMode: 'environment' } });
+      probe.getTracks().forEach((t) => t.stop());
+      list = await cameras();
+    } catch {
+      return video;
+    }
+  }
+  const main = list.find((d) => d.label === 'Back Camera');
+  if (!main) return video;
+  const { facingMode, ...rest } = video;
+  return { ...rest, deviceId: { exact: main.deviceId } };
 }
 
 /** Multi-lens phones can open on the ultra-wide or a zoomed lens; ask for plain 1x where supported. */

@@ -64,6 +64,20 @@ export class Voice {
     });
   }
 
+  /**
+   * Call on any user tap. Browsers only allow sound after a tap; if the narration already started
+   * silently, the voice joins in at the right moment.
+   */
+  gesture() {
+    this.ctx?.resume();
+    const a = this.audio;
+    if (this.active && this.silent && !this.pausedAt) {
+      a.muted = false;
+      a.currentTime = Math.max(0, this.time);
+      a.play().then(() => { this.silent = false; }).catch(() => {});
+    }
+  }
+
   pause() {
     if (!this.active) return;
     this.audio.pause();

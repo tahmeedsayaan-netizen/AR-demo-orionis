@@ -31,6 +31,7 @@ export class VideoScreen {
 
     this.videoTex = new THREE.VideoTexture(video);
     this.videoTex.colorSpace = THREE.SRGBColorSpace;
+    this.videoTex.anisotropy = renderer?.capabilities.getMaxAnisotropy() ?? 4;
     this.screen = new THREE.Mesh(new THREE.PlaneGeometry(SW, SH), softVideoMaterial(this.videoTex));
     this.screen.position.y = SH / 2;
     this.screen.renderOrder = 22;
@@ -100,40 +101,40 @@ export class VideoScreen {
 
 /**
  * Video with rounded corners whose edges fade smoothly into the camera view instead of ending in a hard line.
- * Uses a rounded-rectangle distance field in plane units, so the corner radius stays round on the tall screen.
+ * Built on MeshBasicMaterial so three.js handles the video's colour space exactly as a normal video texture
+ * (a raw shader here washed the colours out); a rounded-rectangle distance field only adds the soft alpha edge.
  */
 function softVideoMaterial(map) {
-  return new THREE.ShaderMaterial({
-    uniforms: {
-      map: { value: map },
-      uSize: { value: new THREE.Vector2(SW, SH) },
-      uRadius: { value: SW * 0.12 },
-      uFeather: { value: SW * 0.09 },
-    },
-    vertexShader: /* glsl */ `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }`,
-    fragmentShader: /* glsl */ `
-      uniform sampler2D map;
-      uniform vec2 uSize;
-      uniform float uRadius;
-      uniform float uFeather;
-      varying vec2 vUv;
-      void main() {
-        vec2 p = (vUv - 0.5) * uSize;
-        vec2 q = abs(p) - (uSize * 0.5 - vec2(uRadius));
-        float dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - uRadius; // 0 at the rounded edge, < 0 inside
-        float alpha = smoothstep(0.0, uFeather, -dist);
-        alpha = alpha * alpha * (3.0 - 2.0 * alpha); // extra-soft falloff
-        vec4 c = texture2D(map, vUv);
-        gl_FragColor = vec4(c.rgb, alpha);
-        #include <colorspace_fragment>
-      }`,
+  const material = new THREE.MeshBasicMaterial({
+    map,
     transparent: true,
     depthWrite: false,
     side: THREE.DoubleSide,
+    toneMapped: false,
   });
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uSize = { value: new THREE.Vector2(SW, SH) };
+    shader.uniforms.uRadius = { value: SW * 0.12 };
+    shader.uniforms.uFeather = { value: SW * 0.09 };
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        'void main() {',
+        `uniform vec2 uSize;
+        uniform float uRadius;
+        uniform float uFeather;
+        void main() {`,
+      )
+      .replace(
+        '#include <map_fragment>',
+        `#include <map_fragment>
+        {
+          vec2 p = (vMapUv - 0.5) * uSize;
+          vec2 q = abs(p) - (uSize * 0.5 - vec2(uRadius));
+          float dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - uRadius; // 0 at the rounded edge, < 0 inside
+          float edge = smoothstep(0.0, uFeather, -dist);
+          diffuseColor.a *= edge * edge * (3.0 - 2.0 * edge); // extra-soft falloff
+        }`,
+      );
+  };
+  return material;
 }

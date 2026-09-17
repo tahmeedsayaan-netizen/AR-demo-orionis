@@ -31,7 +31,7 @@ const waitStage = async (seconds) => {
 };
 const act = (fn, ...args) => page.evaluate(fn, ...args);
 
-await page.goto(base + '?preview&autostart', { waitUntil: 'load' });
+await page.goto(base + '?preview', { waitUntil: 'load' });
 await page.waitForFunction(() => window.__orionis?.director?.state && window.__orionis.director.state !== 'waiting', { timeout: 180000 });
 console.log('started');
 

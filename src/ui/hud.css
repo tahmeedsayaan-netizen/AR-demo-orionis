@@ -156,6 +156,18 @@ h1 { margin: 4px 0 0; font-size: 40px; letter-spacing: 0.32em; font-weight: 800;
   #captions { width: calc(100% - 90px); left: 14px; transform: none; text-align: left; }
 }
 
+/* 8th Wall's motion-permission prompt (iPhone), restyled */
+.prompt-box-8w {
+  font-family: var(--font) !important; background: rgba(16, 16, 16, 0.92) !important; color: #fff !important;
+  border: 1px solid rgba(220, 175, 255, 0.35); border-radius: 20px !important; padding: 18px !important;
+  width: min(300px, calc(100% - 32px)) !important; font-size: 17px !important; filter: none !important;
+  box-shadow: 0 20px 60px rgba(161, 0, 255, 0.35); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.prompt-box-8w p { margin: 4px 4px 16px !important; line-height: 1.4; font-weight: 600; }
+.prompt-button-8w { font-family: var(--font) !important; font-weight: 700; border-radius: 999px !important; padding: 12px !important;
+  background: rgba(255, 255, 255, 0.1) !important; color: #fff !important; }
+.button-primary-8w { background: linear-gradient(135deg, var(--purple), var(--purple-deep)) !important; }
+
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes float { 50% { transform: translateY(-8px); } }
 @keyframes scan { 0% { top: 0; } 50% { top: calc(100% - 3px); } 100% { top: 0; } }

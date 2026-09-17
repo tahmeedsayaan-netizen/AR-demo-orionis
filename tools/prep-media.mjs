@@ -12,9 +12,10 @@ const out = join(root, 'public/media/orionis-story.mp4');
 const poster = join(root, 'public/media/orionis-story.jpg');
 const run = (args) => execFileSync('ffmpeg', ['-v', 'error', '-y', ...args], { stdio: 'inherit' });
 
-run(['-i', input, '-vf', 'scale=540:960', '-c:v', 'libx264', '-preset', 'slow', '-crf', '30',
-  '-profile:v', 'main', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '80k', '-movflags', '+faststart', out]);
-run(['-ss', '8', '-i', input, '-frames:v', '1', '-vf', 'scale=540:960', '-q:v', '3', poster]);
+// Full source resolution (576x1024), high quality: it plays on a large AR screen.
+run(['-i', input, '-c:v', 'libx264', '-preset', 'slow', '-crf', '23', '-tune', 'film',
+  '-profile:v', 'high', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', out]);
+run(['-ss', '8', '-i', input, '-frames:v', '1', '-q:v', '2', poster]);
 
 for (const f of [out, poster]) {
   if (existsSync(f)) console.log(f, (statSync(f).size / 1e6).toFixed(2) + ' MB');
